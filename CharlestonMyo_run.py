@@ -9,6 +9,8 @@ from tkinter import ttk
 from tkinter import filedialog
 from tkinter import messagebox
 import tkinter.font as tkf
+import sys
+
 FONT_NAME = 'tahoma'
 LABEL_FONT = (FONT_NAME, 12)
 EDIT_FONT = (FONT_NAME, 12)
@@ -24,6 +26,12 @@ import sqlite3
 
 
 import datetime
+
+
+# In[ ]:
+
+
+
 
 
 # In[4]:
@@ -547,7 +555,7 @@ def HCM():
 
     # /////// Main Flow ////////////////////////////
 
-    root_HCM = tk.Tk()    
+    root_HCM = tk.Toplevel(root)    
 
     # set the dimensions of the screen 
     # and where it is placed
@@ -672,14 +680,14 @@ def HCM():
     button_delete_sample = ttk.Button(root_HCM, text='Delete', width=10, command=delete_HCM)
     button_delete_sample.place(x=800, y=590)
 
-    button_exit = ttk.Button(root_HCMroot_HCM, text='Exit', width=8, command=root_samples.destroy)
+    button_exit = ttk.Button(root_HCM, text='Exit', width=8, command=root_HCM.destroy)
     button_exit.place(x=1250, y=670)
 
     # ///// Browse Automatically /////////////////////
 
     display_in_table(combination)
 
-    root_HCM.mainloop()
+    show_modal_window(root_HCM, root)
 
 
 # In[25]:
@@ -956,7 +964,7 @@ def patients():
     # //////////////////////////////////////////////////////
     # /////// Main Flow ////////////////////////////
 
-    root_patients = tk.Tk()
+    root_patients = tk.Toplevel(root)
     root_patients.geometry("{0}x{1}+0+0".format(root.winfo_screenwidth(), root.winfo_screenheight()))
     #root.attributes('-fullscreen', True)
     root_patients.title('Patients')
@@ -1157,7 +1165,7 @@ def patients():
 
     display_in_table(combination)
 
-    root_patients.mainloop()
+    show_modal_window(root_patients, root)
 
 
 # In[26]:
@@ -1323,7 +1331,7 @@ def update_patients():
 
 
 def new_HCM():
-    root_new_HCM = tk.Tk()
+    root_new_HCM = tk.Toplevel(root)
 
     w = 1080
     h = 320
@@ -1464,14 +1472,14 @@ def new_HCM():
     button_cancel = ttk.Button(root_new_HCM, text='Cancel', width=15, command=root_new_HCM.destroy)
     button_cancel.place(x=650, y=y_origin+i*gain)
 
-    root_new_HCM.mainloop()
+    show_modal_window(root_new_HCM, root)
 
 
 # In[29]:
 
 
 def new_patient():
-    root_new_patient = tk.Tk()
+    root_new_patient = tk.Toplevel(root)
 
     w = 980 # width for the Tk root
     h = 540 # height for the Tk root
@@ -1684,7 +1692,7 @@ def new_patient():
     button_cancel=ttk.Button(root_new_patient, text='Cancel', width=15, command=root_new_patient.destroy)
     button_cancel.place(x=600, y=y_origin+i*gain)      
 
-    root_new_patient.mainloop()
+    show_modal_window(root_new_patient, root)
 
     #t = datetime.datetime.now()
     #ts = str(datetime.datetime.now())
@@ -1696,7 +1704,7 @@ def new_patient():
 
 
 def new_followUp():
-    root_followUp = tk.Tk()
+    root_followUp = tk.Toplevel(root)
 
     w = 980 # width for the Tk root
     h = 540 # height for the Tk root
@@ -1906,10 +1914,10 @@ def new_followUp():
     button_add=ttk.Button(root_followUp, text='Create', width=15, command=create)
     button_add.place(x=250, y=y_origin+i*gain)
 
-    button_cancel=ttk.Button(root_followUp, text='Cancel', width=15, command=root_new_patient.destroy)
+    button_cancel=ttk.Button(root_followUp, text='Cancel', width=15, command=root_followUp.destroy)
     button_cancel.place(x=600, y=y_origin+i*gain)      
 
-    root_followUp.mainloop()
+    show_modal_window(root_followUp, root)
 
     #t = datetime.datetime.now()
     #ts = str(datetime.datetime.now())
@@ -1986,7 +1994,7 @@ def patientNameSearch():
 
 
 def about():
-    about_root=tk.Tk()
+    about_root = tk.Toplevel(root)
 
     w = 367 # width for the Tk root
     h = 230 # height for the Tk root
@@ -2022,26 +2030,115 @@ def about():
     button_refresh=ttk.Button(about_root, width=15, text='OK', command=about_root.destroy)
     button_refresh.place(x=135, y=170)
 
-    about_root.mainloop()
+    show_modal_window(about_root, root)
 
 
 # In[35]:
 
 
-def exit_the_main():    
-    root.quit()
-    root.destroy()
+import sys
+
+_tk_poll_after_id = None
+
+
+def _running_in_notebook():
+    try:
+        return get_ipython() is not None
+    except NameError:
+        return False
+
+
+def _disable_ipython_gui():
+    try:
+        ip = get_ipython()
+        if ip is not None:
+            ip.enable_gui(None)
+    except Exception:
+        pass
+
+
+def _safe_destroy(window):
+    if window is None:
+        return
+    try:
+        window.grab_release()
+    except tk.TclError:
+        pass
+    try:
+        if window.winfo_exists():
+            window.destroy()
+    except tk.TclError:
+        pass
+
+
+def _stop_tk_polling():
+    global _tk_poll_after_id
+    if _tk_poll_after_id is not None:
+        try:
+            root.after_cancel(_tk_poll_after_id)
+        except tk.TclError:
+            pass
+        _tk_poll_after_id = None
+
+
+def _poll_tk_events():
+    global _tk_poll_after_id
+    try:
+        if root.winfo_exists():
+            root.update_idletasks()
+            root.update()
+            _tk_poll_after_id = root.after(50, _poll_tk_events)
+    except tk.TclError:
+        _tk_poll_after_id = None
+
+
+def show_modal_window(window, parent):
+    window.transient(parent)
+    window.protocol('WM_DELETE_WINDOW', lambda w=window: _safe_destroy(w))
+    window.grab_set()
+    parent.wait_window(window)
+
+
+def exit_the_main():
+    global conn
+    _stop_tk_polling()
+    _disable_ipython_gui()
+    for child in list(root.winfo_children()):
+        if isinstance(child, tk.Toplevel):
+            _safe_destroy(child)
+    try:
+        conn.close()
+    except Exception:
+        pass
+    try:
+        root.quit()
+    except tk.TclError:
+        pass
+    _safe_destroy(root)
+
+
+def start_main_window():
+    if _running_in_notebook():
+        _poll_tk_events()
+    else:
+        root.mainloop()
+        try:
+            conn.close()
+        except Exception:
+            pass
+        sys.exit(0)
 
 
 # ## Main Flow
 
-# In[36]:
+# In[ ]:
 
 
 root = tk.Tk()
 root.geometry("{0}x{1}+0+0".format(root.winfo_screenwidth(), root.winfo_screenheight()))
 #root.attributes('-fullscreen', True)
 root.title('CharlestonPark')
+root.protocol('WM_DELETE_WINDOW', exit_the_main)
 #root.iconbitmap('CharlestonParkIcon.ico')
 
 ### Multicolumn Listbox
@@ -2382,14 +2479,14 @@ label_PatientName_Search.place(x=570,y=485)
 button_PatientName_Search=ttk.Button(root, text='Search', width=15, command=patientNameSearch)
 button_PatientName_Search.place(x=750, y=500)
 
-root.mainloop()
 
-conn.close()
 
 #t = datetime.datetime.now()
 #ts = str(datetime.datetime.now())
 
 #datetime.datetime.strptime(ts, '%Y%m%d%I%M%S%f')
+
+start_main_window()
 
 
 # In[ ]:
