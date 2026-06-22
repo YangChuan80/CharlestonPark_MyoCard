@@ -12,8 +12,8 @@ import tkinter.font as tkf
 import sys
 
 FONT_NAME = 'tahoma'
-LABEL_FONT = (FONT_NAME, 12)
-EDIT_FONT = (FONT_NAME, 12)
+LABEL_FONT = (FONT_NAME, 9)
+EDIT_FONT = (FONT_NAME, 9)
 
 
 # In[2]:
